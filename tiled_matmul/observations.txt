@@ -1,0 +1,40 @@
+m=4, n=4, k=4
+TILE_WIDTH=2
+Performing warm-up runs...
+Benchmarking CPU implementation...
+Benchmarking GPU implementation...
+CPU average time: 0.393150 microseconds
+GPU average time: 12.409300 microseconds
+Speedup: 0.031682x
+flag: 1
+
+
+m=3, n=3, k=3
+TILE_WIDTH=2
+Performing warm-up runs...
+Benchmarking CPU implementation...
+Benchmarking GPU implementation...
+CPU average time: 0.310450 microseconds
+GPU average time: 10.817550 microseconds
+Speedup: 0.028699x
+flag: 1
+
+m=16, n=16, k=16
+TILE_WIDTH=8
+Performing warm-up runs...
+Benchmarking CPU implementation...
+Benchmarking GPU implementation...
+CPU average time: 22.698500 microseconds
+GPU average time: 12.885150 microseconds
+Speedup: 1.761602x
+flag: 1
+
+m=32, n=32, k=32
+TILE_WIDTH=16
+Performing warm-up runs...
+Benchmarking CPU implementation...
+Benchmarking GPU implementation...
+CPU average time: 206.893350 microseconds
+GPU average time: 13.761000 microseconds
+Speedup: 15.034761x
+flag: 1

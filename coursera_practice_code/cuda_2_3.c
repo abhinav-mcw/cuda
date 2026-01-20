@@ -1,4 +1,5 @@
-__global__ void MatrixMulKernel(int m, int n, int k, float* A, float* B, float* C)
+__global__ 
+void MatrixMulKernel(int m, int n, int k, float* A, float* B, float* C)
 {
     // 1. & 2. Declare shared memory for the tiles of A and B
     __shared__ float ds_A[TILE_WIDTH][TILE_WIDTH];
