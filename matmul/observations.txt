@@ -5,7 +5,7 @@ Benchmarking GPU implementation...
 CPU average time: 0.332600 microseconds
 GPU average time: 11.026150 microseconds
 Speedup: 0.030165x
-flag: 1
+matrix equal: 1
 
 
 
@@ -17,7 +17,7 @@ Benchmarking GPU implementation...
 CPU average time: 24.088550 microseconds
 GPU average time: 14.004100 microseconds
 Speedup: 1.720107x
-flag: 1
+matrix equal: 1
 
 
 m=30, n=40, k=50
@@ -27,4 +27,4 @@ Benchmarking GPU implementation...
 CPU average time: 191.475550 microseconds
 GPU average time: 19.891450 microseconds
 Speedup: 9.626023x
-flag: 1
+matrix equal: 1

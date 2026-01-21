@@ -143,7 +143,7 @@ int main()
         }
     }
 
-    printf("flag: %d", flag);
+    printf("matrix equal: %d", flag);
 
     free(h_a);
     free(h_b);
