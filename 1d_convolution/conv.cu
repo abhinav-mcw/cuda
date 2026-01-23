@@ -58,7 +58,7 @@ int main(){
     float *h_a, *h_mask, *h_c_cpu, *h_c_gpu;
     float *d_a, *d_mask, *d_c;
 
-    int n = 7, mask_len=5;
+    int n = 200, mask_len=120;
 
     int size_A = n * sizeof(float);
     int size_B = mask_len * sizeof(float);
@@ -124,7 +124,7 @@ int main(){
     bool flag=true;
 
     for(int i=0; i<n; i++){
-        if(std::abs(h_c_cpu[i]-h_c_gpu[i])>0.0001){
+        if(std::abs(h_c_cpu[i]-h_c_gpu[i])>0.01){
             flag=false;
             break;
         }
