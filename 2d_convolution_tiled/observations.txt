@@ -1,0 +1,32 @@
+O_TILE_WIDTH = 12
+BLOCK_WIDTH = (O_TILE_WIDTH+4)
+
+height = 8, width = 8, channel = 1;
+mask_width = 5;
+Performing warm-up runs...
+Benchmarking CPU implementation...
+Benchmarking GPU implementation...
+CPU average time: 8.299100 microseconds
+GPU average time: 13.785800 microseconds
+Speedup: 0.602004x
+matrix equal: 1
+
+height = 32, width = 32, channel = 1;
+mask_width = 5;
+Performing warm-up runs...
+Benchmarking CPU implementation...
+Benchmarking GPU implementation...
+CPU average time: 133.338200 microseconds
+GPU average time: 12.820800 microseconds
+Speedup: 10.400147x
+matrix equal: 0
+
+height = 128, width = 128, channel = 1;
+mask_width = 5;
+Performing warm-up runs...
+Benchmarking CPU implementation...
+Benchmarking GPU implementation...
+CPU average time: 3368.317300 microseconds
+GPU average time: 17.838600 microseconds
+Speedup: 188.821841x
+matrix equal: 0
