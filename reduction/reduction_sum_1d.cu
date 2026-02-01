@@ -2,13 +2,13 @@
 #include <iostream>
 #include <cmath>
 
-#define O_TILE_WIDTH 60
-#define BLOCK_WIDTH (O_TILE_WIDTH + 4)
+#define BLOCK_SIZE 1024
 
 // Initialize matrix with random values
 void init_vector(float *vec, int n) {
     for (int i = 0; i < n; i++) {
         vec[i] = (float)rand() / RAND_MAX * 10;
+        // vec[i] = 1.0f;
     }
 }
 
@@ -19,91 +19,63 @@ double get_time() {
 }
 
 __global__ 
-void convGPUTiled(float *N, float *M, float *P, int Mask_Width, int Width) {
+void reductionSumGPU(float *input, float *h_c_gpu) {
 
-    int tx = threadIdx.x;
+    __shared__ float partialSum[2*BLOCK_SIZE];
 
-    // Calculate the global index for the current thread
-    int index_o=blockIdx.x*O_TILE_WIDTH + tx;
+    unsigned int t = threadIdx.x;
+    unsigned int start = 2*blockIdx.x*blockDim.x;
+    partialSum[t] = input[start+t];
+    partialSum[blockDim.x+t]=input[start+blockDim.x+t];
 
-    int n=Mask_Width/2;
-    int index_i=index_o-n;
-
-    __shared__ float Ns[BLOCK_WIDTH];
-
-    if ((index_i>=0)&& (index_i < Width)){
-        Ns[tx]=N[index_i];
-    }
-    else{
-        Ns[tx]=0.0f;
-    }
-
-    __syncthreads();
-
-    if (tx < O_TILE_WIDTH) {
-        float output = 0.0f;
-        for(int j = 0; j < Mask_Width; j++) {
-            output += M[j] * Ns[j + tx];
+    for (unsigned int stride = 1; stride <= blockDim.x; stride *= 2) 
+    {
+        __syncthreads();
+        if (t % stride == 0) 
+        {
+            partialSum[2 * t] += partialSum[2 * t + stride];
         }
-        P[index_o] = output;
     }
-
     __syncthreads();
-
-
+    *h_c_gpu = partialSum[0];
 }
-void convCPU(float* h_a, float* h_mask, float*h_c_cpu, int mask_width, int width){
-    
-    for(int i=0; i<width; i++){
-        
-        float Pvalue = 0;
-        int N_start_point= i - (mask_width / 2);
 
-        for(int j=0; j<mask_width; j++){
-            if ((N_start_point + j>=0) && (N_start_point+j < width)){
-                Pvalue += h_a[N_start_point + j] * h_mask[j];
-            }
-        }
-        h_c_cpu[i]=Pvalue;
+void reductionSumCPU(float* h_a, float* h_c_cpu, int n){
+    float sum=0.0f;
+    for(int i=0; i<n; i++){
+        sum+=h_a[i];
     }
-
+    *h_c_cpu=sum;
 }
 
 int main(){
-    float *h_a, *h_mask, *h_c_cpu, *h_c_gpu;
-    float *d_a, *d_mask, *d_c;
+    float *h_a, *h_c_cpu, *h_c_gpu;
+    float *d_a, *d_c;
 
-    int n = 1024, mask_len=5;
+    int n = 2048;
 
     int size_A = n * sizeof(float);
-    int size_B = mask_len * sizeof(float);
-    int size_C = n * sizeof(float);
+    int size_C = sizeof(float);
 
     h_a = (float*)malloc(size_A);
-    h_mask = (float*)malloc(size_B);
     h_c_cpu = (float*)malloc(size_C);
     h_c_gpu = (float*)malloc(size_C);
 
     init_vector(h_a, n);
-    init_vector(h_mask, mask_len);
 
     cudaMalloc(&d_a, size_A);
-    cudaMalloc(&d_mask, size_B);
     cudaMalloc(&d_c, size_C);
 
     // Copy data to device
     cudaMemcpy(d_a, h_a, size_A, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_mask, h_mask, size_B, cudaMemcpyHostToDevice);
 
-    dim3 dimBlock(BLOCK_WIDTH, 1, 1);
-
-    dim3 dimGrid((n-1)/O_TILE_WIDTH+1, 1, 1);
-
+    // int num_blocks = (n + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    int num_blocks = (n/2) / BLOCK_SIZE;
 
     printf("Performing warm-up runs...\n");
     for (int i = 0; i < 3; i++) {
-        convCPU(h_a, h_mask, h_c_cpu, mask_len, n);
-        convGPUTiled<<<dimGrid, dimBlock>>>(d_a, d_mask, d_c, mask_len, n);
+        reductionSumCPU(h_a, h_c_cpu, n);
+        reductionSumGPU<<<num_blocks, BLOCK_SIZE>>>(d_a, d_c);
         cudaDeviceSynchronize();
     }
 
@@ -116,7 +88,7 @@ int main(){
     double cpu_total_time = 0.0;
     for (int i = 0; i < 20; i++) {
         double start_time = get_time();
-        convCPU(h_a, h_mask, h_c_cpu, mask_len, n);
+        reductionSumCPU(h_a, h_c_cpu, n);
         double end_time = get_time();
         cpu_total_time += end_time - start_time;
     }
@@ -126,7 +98,7 @@ int main(){
     double gpu_total_time = 0.0;
     for (int i = 0; i < 20; i++) {
         double start_time = get_time();
-        convGPUTiled<<<dimGrid, dimBlock>>>(d_a, d_mask, d_c, mask_len, n);
+        reductionSumGPU<<<num_blocks, BLOCK_SIZE>>>(d_a, d_c);
         cudaDeviceSynchronize();
         double end_time = get_time();
         gpu_total_time += end_time - start_time;
@@ -139,24 +111,21 @@ int main(){
     printf("GPU average time: %f milliseconds\n", gpu_avg_time*1000);
     printf("Speedup: %fx\n", cpu_avg_time / gpu_avg_time);
 
-    bool flag=true;
+    bool flag;
 
-    for(int i=0; i<n; i++){
-        if(std::abs(h_c_cpu[i]-h_c_gpu[i])>0.01){
-            flag=false;
-            break;
-        }
+    if(abs(*h_c_cpu-*h_c_gpu)<.01)
+        flag=true;
+    else{
+        flag=false;
+        printf("%f %f \n", *h_c_cpu, *h_c_gpu);
     }
-
-    printf("array equal: %d", flag);
+    printf("sum equal: %d", flag);
 
     free(h_a);
-    free(h_mask);
     free(h_c_cpu);
     free(h_c_gpu);
 
     cudaFree(d_a);
-    cudaFree(d_mask);
     cudaFree(d_c);
 
     return 0;

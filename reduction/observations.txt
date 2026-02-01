@@ -1,0 +1,30 @@
+BLOCK_SIZE = 4
+int n = 16;
+Performing warm-up runs...
+Benchmarking CPU implementation...
+Benchmarking GPU implementation...
+CPU average time: 0.000064 milliseconds
+GPU average time: 0.012628 milliseconds
+Speedup: 0.005096x
+sum equal: 1
+
+BLOCK_SIZE = 64
+int n = 128;
+Performing warm-up runs...
+Benchmarking CPU implementation...
+Benchmarking GPU implementation...
+CPU average time: 0.000438 milliseconds
+GPU average time: 0.013081 milliseconds
+Speedup: 0.033462x
+sum equal: 1
+
+BLOCK_SIZE = 1024
+int n = 2048;
+Performing warm-up runs...
+Benchmarking CPU implementation...
+Benchmarking GPU implementation...
+CPU average time: 0.007224 milliseconds
+GPU average time: 0.018488 milliseconds
+Speedup: 0.390743x
+sum equal: 1
+

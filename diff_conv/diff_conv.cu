@@ -2,8 +2,7 @@
 #include <iostream>
 #include <cmath>
 
-#define O_TILE_WIDTH 16
-#define BLOCK_WIDTH (O_TILE_WIDTH+4)
+#define BLOCK_SIZE 4
 
 // Initialize matrix with random values
 void init_matrix(float *mat, int rows, int cols) {
@@ -15,58 +14,56 @@ void init_matrix(float *mat, int rows, int cols) {
 
 // CUDA kernel for 1 channel (2d conv)
 __global__ 
-void conv2dGPU(float* d_A, float* d_B, float* d_C, int height, int width, int mask_width)
+void conv2dGPU(float* d_A, float* d_B, float* d_C, int height, int width, int mask_width, int output_height, int output_width)
 {
-    __shared__ float Ns[BLOCK_WIDTH][BLOCK_WIDTH];
 
-    int tx = threadIdx.x;
-    int ty = threadIdx.y;
+    int Row = blockIdx.y * blockDim.y + threadIdx.y;
+    int Col = blockIdx.x * blockDim.x + threadIdx.x;
 
-    int row_o = blockIdx.y * O_TILE_WIDTH + ty;
-    int col_o = blockIdx.x * O_TILE_WIDTH + tx;
+//     int row_o = blockIdx.y * O_TILE_WIDTH + ty;
+//     int col_o = blockIdx.x * O_TILE_WIDTH + tx;
 
-    int row_i = row_o - (mask_width/2);
-    int col_i = col_o - (mask_width/2);
+//     int row_i = row_o - (mask_width/2);
+//     int col_i = col_o - (mask_width/2);
 
-    if ((row_i>=0) && (row_i < height) && (col_i>=0) && (col_i<width)){
-        Ns[ty][tx] = d_A[row_i*width + col_i];
-    } else {
-        Ns[ty][tx] = 0.0f;
-    }
+//     if ((row_i>=0) && (row_i < height) && (col_i>=0) && (col_i<width)){
+//         Ns[ty][tx] = d_A[row_i*width + col_i];
+//     } else {
+//         Ns[ty][tx] = 0.0f;
+//     }
 
-    __syncthreads();
+//     __syncthreads();
 
     float output = 0.0f;
 
-    if (ty<O_TILE_WIDTH && tx<O_TILE_WIDTH){
+    if (Row<output_height && Col<output_width){
         for(int i=0; i<mask_width; i++){
             for(int j=0; j<mask_width; j++){
-                output+=d_B[i*mask_width+j] * Ns[i+ty][j+tx];
+                output+=d_A[(i+Row)*width + (Col+j)] * d_B[i*mask_width+j];
             }
         }
+        d_C[Row*output_width + Col]=output;
+
     }
 
-    if(row_o<height && col_o < width)
-        d_C[row_o*width + col_o]=output;
+    // if(row_o<height && col_o < width)
+    //     d_C[row_o*width + col_o]=output;
 
     __syncthreads();
 }
 
 
-void conv2dCPU(float* h_A, float* h_B, float* h_C, int height, int width, int mask_width) 
+void conv2dCPU(float* h_A, float* h_B, float* h_C, int height, int width, int mask_width, int output_height, int output_width) 
 {
-    for(int row=0; row<height; row++){
-        for(int col=0; col<width; col++){
+    for(int row=0; row<output_height; row++){
+        for(int col=0; col<output_width; col++){
             float sum=0.0f;
-            int start_row = row - mask_width/2;
-            int start_col = col - mask_width/2;
             for(int i=0; i<mask_width; i++){
                 for(int j=0; j<mask_width; j++){
-                    if ( (start_row+i>=0) && (start_row+i < height) && (start_col+j >=0 ) && (start_col +j <width)) 
-                        sum+=h_B[i*mask_width + j]* h_A[(start_row+i)*width + (start_col+j)];
+                    sum+=h_A[(row+i)*width + (col+j)] * h_B[i*mask_width+j];
                 }
             }
-            h_C[row*width+col]=sum;
+            h_C[row*output_width+col]=sum;
         }
     }
 }
@@ -82,12 +79,15 @@ int main()
     float *h_a, *h_b, *h_c_cpu, *h_c_gpu;
     float *d_a, *d_b, *d_c;
     // Matrix sizes
-    int height = 16, width = 16, channel = 1;
-    int mask_width = 5;
+    int height = 10, width = 10;
+    int mask_width = 3;
 
-    int size_A = height * width * channel * sizeof(float);
+    int output_height = height - mask_width + 1;
+    int output_width = width - mask_width + 1;
+
+    int size_A = height * width  * sizeof(float);
     int size_B = mask_width * mask_width * sizeof(float);
-    int size_C = height * width * channel * sizeof(float);
+    int size_C = output_height * output_width  * sizeof(float);
 
     h_a = (float*)malloc(size_A);
     h_b = (float*)malloc(size_B);
@@ -95,7 +95,7 @@ int main()
     h_c_gpu = (float*)malloc(size_C);
 
     // Host matrices (dummy data)
-    init_matrix(h_a, height, width); //channel = 1
+    init_matrix(h_a, height, width);
     init_matrix(h_b, mask_width, mask_width);
 
     cudaMalloc(&d_a, size_A);
@@ -107,10 +107,9 @@ int main()
     cudaMemcpy(d_b, h_b, size_B, cudaMemcpyHostToDevice);
 
 
-    dim3 blockDim(BLOCK_WIDTH, BLOCK_WIDTH);
-    dim3 gridDim((width - 1) / O_TILE_WIDTH + 1, (height - 1) / O_TILE_WIDTH +1);
+    dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE);
+    dim3 gridDim((output_width + BLOCK_SIZE - 1) / BLOCK_SIZE + 1, (output_height +BLOCK_SIZE - 1) / BLOCK_SIZE +1);
 
-    // conv2dCPU(h_a, h_b, h_c_cpu, height, width, mask_width);
 
     // for(int i=0; i<height; i++){
     //     for(int j=0; j<width; j++){
@@ -118,11 +117,13 @@ int main()
     //     }
     //     printf("\n");
     // }
+    printf("output height %d \n", output_height);
+    printf("output width %d \n", output_width);
 
     printf("Performing warm-up runs...\n");
-    for (int i = 0; i < 3; i++) {
-        conv2dCPU(h_a, h_b, h_c_cpu, height, width, mask_width);
-        conv2dGPU<<<gridDim, blockDim>>>(d_a, d_b, d_c, height, width, mask_width);
+    for (int i = 0; i < 1; i++) {
+        conv2dCPU(h_a, h_b, h_c_cpu, height, width, mask_width, output_height, output_width);
+        conv2dGPU<<<gridDim, blockDim>>>(d_a, d_b, d_c, height, width, mask_width, output_height, output_width);
         cudaDeviceSynchronize();
     }
 
@@ -139,18 +140,26 @@ int main()
     double cpu_total_time = 0.0;
     for (int i = 0; i < 20; i++) {
         double start_time = get_time();
-        conv2dCPU(h_a, h_b, h_c_cpu, height, width, mask_width);
+        conv2dCPU(h_a, h_b, h_c_cpu, height, width, mask_width, output_height, output_width);
         double end_time = get_time();
         cpu_total_time += end_time - start_time;
     }
     double cpu_avg_time = cpu_total_time / 20.0;
+
+    // for(int i=0; i<output_height; i++){
+    //     for(int j=0; j<output_width; j++){
+    //         printf("%f ", h_c_cpu[i*output_width+j]);
+    //         // printf("%d ", 1);
+    //     }
+    //     printf("\n");
+    // }
 
     // Benchmark GPU implementation
     printf("Benchmarking GPU implementation...\n");
     double gpu_total_time = 0.0;
     for (int i = 0; i < 20; i++) {
         double start_time = get_time();
-        conv2dGPU<<<gridDim, blockDim>>>(d_a, d_b, d_c, height, width, mask_width);
+        conv2dGPU<<<gridDim, blockDim>>>(d_a, d_b, d_c, height, width, mask_width, output_height, output_width);
         cudaDeviceSynchronize();
         double end_time = get_time();
         gpu_total_time += end_time - start_time;
@@ -173,9 +182,9 @@ int main()
 
     bool flag=true;
 
-    for(int i=0; i<height; i++){
-        for(int j=0; j<width; j++){
-            if(std::abs(h_c_cpu[i*width+j]-h_c_gpu[i*width+j])>1){
+    for(int i=0; i<output_height; i++){
+        for(int j=0; j<output_width; j++){
+            if(std::abs(h_c_cpu[i*output_width+j]-h_c_gpu[i*output_width+j])>.01){
                 flag=false;
                 break;
             }
