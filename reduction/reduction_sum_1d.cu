@@ -25,8 +25,8 @@ void reductionSumGPU(float *input, float *h_c_gpu) {
 
     unsigned int t = threadIdx.x;
     unsigned int start = 2*blockIdx.x*blockDim.x;
-    partialSum[t] = input[start+t];
-    partialSum[blockDim.x+t]=input[start+blockDim.x+t];
+    partialSum[t] = input[start+t]; // 0,1,2,3
+    partialSum[blockDim.x+t]=input[start+blockDim.x+t]; // 4,5,6,7
 
     for (unsigned int stride = 1; stride <= blockDim.x; stride *= 2) 
     {

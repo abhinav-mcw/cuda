@@ -8,8 +8,6 @@ Speedup: 0.030165x
 matrix equal: 1
 
 
-
-
 m=15, n=20, k=25
 Performing warm-up runs...
 Benchmarking CPU implementation...
