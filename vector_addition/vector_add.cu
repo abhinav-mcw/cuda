@@ -6,22 +6,24 @@
 
 #define BLOCK_SIZE 256
 
-double get_time() {
+double get_time()
+{
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return ts.tv_sec + ts.tv_nsec * 1e-9;
 }
 
-__global__
-void vecAddGPU(float* A, float* B, float* C, int n)
+__global__ void vecAddGPU(float *A, float *B, float *C, int n)
 {
     int i = threadIdx.x + blockDim.x * blockIdx.x;
     if (i < n)
         C[i] = A[i] + B[i];
 }
 
-void vecAddCPU(float *a, float *b, float *c, int n) {
-    for (int i = 0; i < n; i++) {
+void vecAddCPU(float *a, float *b, float *c, int n)
+{
+    for (int i = 0; i < n; i++)
+    {
         c[i] = a[i] + b[i];
     }
 }
@@ -43,16 +45,17 @@ int main()
 
     int num_blocks = (n + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
-    cudaMalloc((void**)&d_a, size);
+    cudaMalloc((void **)&d_a, size);
     cudaMemcpy(d_a, h_a, size, cudaMemcpyHostToDevice);
 
-    cudaMalloc((void**)&d_b, size);
+    cudaMalloc((void **)&d_b, size);
     cudaMemcpy(d_b, h_b, size, cudaMemcpyHostToDevice);
 
-    cudaMalloc((void**)&d_c, size);
+    cudaMalloc((void **)&d_c, size);
 
     printf("Performing warm-up runs...\n");
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 3; i++)
+    {
         vecAddCPU(h_a, h_b, h_c_cpu, n);
         vecAddGPU<<<num_blocks, BLOCK_SIZE>>>(d_a, d_b, d_c, n);
         cudaDeviceSynchronize();
@@ -60,7 +63,8 @@ int main()
 
     printf("Benchmarking CPU implementation...\n");
     double cpu_total_time = 0.0;
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < 20; i++)
+    {
         double start_time = get_time();
         vecAddCPU(h_a, h_b, h_c_cpu, n);
         double end_time = get_time();
@@ -70,7 +74,8 @@ int main()
 
     printf("Benchmarking GPU implementation...\n");
     double gpu_total_time = 0.0;
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < 20; i++)
+    {
         double start_time = get_time();
         vecAddGPU<<<num_blocks, BLOCK_SIZE>>>(d_a, d_b, d_c, n);
         cudaDeviceSynchronize();
@@ -81,8 +86,8 @@ int main()
 
     cudaMemcpy(h_c_gpu, d_c, size, cudaMemcpyDeviceToHost);
 
-    printf("CPU average time: %f milliseconds\n", cpu_avg_time*1000);
-    printf("GPU average time: %f milliseconds\n", gpu_avg_time*1000);
+    printf("CPU average time: %f milliseconds\n", cpu_avg_time * 1000);
+    printf("GPU average time: %f milliseconds\n", gpu_avg_time * 1000);
     printf("Speedup: %fx\n", cpu_avg_time / gpu_avg_time);
 
     cudaFree(d_a);

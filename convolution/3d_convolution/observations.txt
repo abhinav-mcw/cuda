@@ -1,0 +1,18 @@
+height = 5, width = 5, channel = 8;
+mask_width = 3, mask_height = 3, mask_channel = 8, num_masks = 8;
+Benchmarking CPU implementation...
+Benchmarking GPU implementation...
+CPU average time: 28.985950 microseconds
+GPU average time: 16.781950 microseconds
+Speedup: 1.727210x
+matrix equal: 1
+
+height = 25, width = 25, channel = 8;
+mask_width = 7, mask_height = 7, mask_channel = 8, num_masks = 8;
+Benchmarking CPU implementation...
+Benchmarking GPU implementation...
+CPU average time: 5896.496900 microseconds
+GPU average time: 81.216050 microseconds
+Speedup: 72.602606x
+matrix equal: 1
+

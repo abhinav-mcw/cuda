@@ -10,8 +10,6 @@
 #include "stb_image.h"
 #include "stb_image_write.h"
 
-#define BLOCK_SIZE 16
-
 // function to rescale image on cpu using bilinear interpolation foward mapping
 void RescaleImageCpu(unsigned char *imageInput, unsigned char *imageOutput, int width, int height, int output_height, int output_width)
 {
@@ -44,22 +42,19 @@ __global__ void RescaleImageGpu(unsigned char *imageInput, unsigned char *imageO
     // s is the scaling factor
     int s = output_height / height;
 
-    // global thread index
-    int row = blockIdx.y * blockDim.y + threadIdx.y;
-    int col = blockIdx.x * blockDim.x + threadIdx.x;
+    // calculate the row and column index for the input image based on the block index
+    int row = blockIdx.y;
+    int col = blockIdx.x;
 
     int us = s * col, vs = s * row;
 
     // du and dv are the offsets for the 2x2 neighborhood
-    for (int du = 0; du < 2; du++)
-    {
-        for (int dv = 0; dv < 2; dv++)
-        {
-            // Calculate the value for the output pixel using weighted input pixel value
-            float value = (1 - (float)du / 2) * (1 - (float)dv / 2) * imageInput[row * width + col];
-            imageOutput[(vs + dv) * output_width + (us + du)] += value;
-        }
-    }
+    int du = threadIdx.x;
+    int dv = threadIdx.y;
+
+    // Calculate the value for the output pixel using weighted input pixel value
+    float value = (1 - (float)du / 2) * (1 - (float)dv / 2) * imageInput[row * width + col];
+    imageOutput[(vs + dv) * output_width + (us + du)] += value;
 }
 
 int main(int argc, char **argv)
@@ -115,8 +110,8 @@ int main(int argc, char **argv)
 
     // Process image on gpu
     std::cout << "Running CUDA Kernel...";
-    dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE);
-    dim3 gridDim((width - 1) / BLOCK_SIZE + 1, (height - 1) / BLOCK_SIZE + 1);
+    dim3 blockDim(2, 2);
+    dim3 gridDim(256, 256);
 
     RescaleImageGpu<<<gridDim, blockDim>>>(ptrImageDataGpu, ptrOutputImageDataGpu, width, height, output_width, output_height);
     auto err = cudaGetLastError();

@@ -1,0 +1,22 @@
+n = 128, mask_len = 5;
+Performing warm-up runs...
+Benchmarking CPU implementation...
+Benchmarking GPU implementation...
+CPU average time: 0.002609 milliseconds
+GPU average time: 0.009457 milliseconds
+Speedup: 0.275831x
+array equal: 1
+
+n = 1024, mask_len = 5;
+Performing warm-up runs...
+Benchmarking CPU implementation...
+Benchmarking GPU implementation...
+CPU average time: 0.014767 milliseconds
+GPU average time: 0.010392 milliseconds
+Speedup: 1.420988x
+array equal: 1
+
+
+
+
+

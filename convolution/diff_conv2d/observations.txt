@@ -1,0 +1,19 @@
+height = 5, width = 5;
+mask_width = 3;
+Performing warm-up runs...
+Benchmarking CPU implementation...
+Benchmarking GPU implementation...
+CPU average time: 0.558750 microseconds
+GPU average time: 10.353450 microseconds
+Speedup: 0.053968x
+matrix equal: 1
+
+height = 125, width = 125;
+mask_width = 3;
+Performing warm-up runs...
+Benchmarking CPU implementation...
+Benchmarking GPU implementation...
+CPU average time: 519.411200 microseconds
+GPU average time: 16.894950 microseconds
+Speedup: 30.743577x
+matrix equal: 1

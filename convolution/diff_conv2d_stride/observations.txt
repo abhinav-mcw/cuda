@@ -1,0 +1,21 @@
+height = 5, width = 5;
+mask_width = 2;
+stride = 2;
+Performing warm-up runs...
+Benchmarking CPU implementation...
+Benchmarking GPU implementation...
+CPU average time: 0.262050 microseconds
+GPU average time: 9.545900 microseconds
+Speedup: 0.027452x
+matrix equal: 1
+
+height = 50, width = 50;
+mask_width = 2;
+stride = 2;
+Performing warm-up runs...
+Benchmarking CPU implementation...
+Benchmarking GPU implementation...
+CPU average time: 12.515550 microseconds
+GPU average time: 10.811600 microseconds
+Speedup: 1.157604x
+matrix equal: 1

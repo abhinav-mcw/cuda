@@ -12,8 +12,10 @@
 
 #define BLOCK_SIZE 16
 
+// function to rescale image on cpu using bilinear interpolation backward mapping
 void RescaleImageCpu(unsigned char *imageInput, unsigned char *imageOutput, int width, int height, int output_height, int output_width)
 {
+    // Calculate the ratio of input to output dimensions
     float yratio = ((float)height - 1) / ((float)output_height - 1);
     float xratio = ((float)width - 1) / ((float)output_width - 1);
 
@@ -21,18 +23,22 @@ void RescaleImageCpu(unsigned char *imageInput, unsigned char *imageOutput, int 
     {
         for (int x = 0; x < output_width; x++)
         {
+            // Calculate the corresponding input coordinates
             float y_in = yratio * y;
             float x_in = xratio * x;
 
+            // Determine the coordinates of the 2x2 neighborhood in the input image
             int y0 = floor(y_in);
             int y1 = min(y0 + 1, height - 1);
 
             int x0 = floor(x_in);
             int x1 = min(x0 + 1, width - 1);
 
+            // Calculate the distances from the input coordinates to the neighboring pixels
             float dy = y_in - y0;
             float dx = x_in - x0;
 
+            // Calculate the value for the output pixel using weighted sum of the 4 neighboring input pixels
             float n1 = (1 - dx) * (1 - dy) * imageInput[y0 * width + x0];
             float n2 = dx * (1 - dy) * imageInput[y0 * width + x1];
             float n3 = (1 - dx) * dy * imageInput[y1 * width + x0];
@@ -45,19 +51,25 @@ void RescaleImageCpu(unsigned char *imageInput, unsigned char *imageOutput, int 
     }
 }
 
+// function to rescale image on gpu using bilinear interpolation backward mapping
 __global__ void RescaleImageGpu(unsigned char *imageInput, unsigned char *imageOutput, int width, int height, int output_height, int output_width)
 {
+    // Calculate the ratio of input to output dimensions
     float yratio = ((float)height - 1) / ((float)output_height - 1);
     float xratio = ((float)width - 1) / ((float)output_width - 1);
 
+    // global thread index
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
+    // check if the thread is within the bounds of the output image
     if (x < output_width && y < output_height)
     {
+        // Calculate the corresponding input coordinates
         float y_in = yratio * y;
         float x_in = xratio * x;
 
+        // Determine the coordinates of the 2x2 neighborhood in the input image
         int y0 = floor(y_in);
         int y1 = min(y0 + 1, height - 1);
 
@@ -67,6 +79,7 @@ __global__ void RescaleImageGpu(unsigned char *imageInput, unsigned char *imageO
         float dy = y_in - y0;
         float dx = x_in - x0;
 
+        // Calculate the value for the output pixel using weighted sum of the 4 neighboring input pixels
         float n1 = (1 - dx) * (1 - dy) * imageInput[y0 * width + x0];
         float n2 = dx * (1 - dy) * imageInput[y0 * width + x1];
         float n3 = (1 - dx) * dy * imageInput[y1 * width + x0];
