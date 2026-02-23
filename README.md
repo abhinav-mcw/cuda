@@ -30,11 +30,17 @@ This repository contains hands-on CUDA C++ implementations of fundamental GPU co
 
 5. **Bilinear Image Rescaling**
 
-* Forward bilinear interpolation
+* Forward and backward bilinear interpolation
 * GPU-based image upscaling
 * Pixel mapping and interpolation weights
 
-6. **Practice Implementations**
+6. **Bicubic Image Rescaling**
+
+* Backward bilinear interpolation
+* GPU-based image upscaling
+* Pixel mapping and interpolation weights
+
+7. **Practice Implementations**
 
     Code inspired from:
 * Coursera CUDA courses
